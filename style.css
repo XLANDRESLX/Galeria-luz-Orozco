@@ -414,10 +414,16 @@ body {
   display: block;
   max-width: 90vw;
   max-height: 85vh;
-  width: auto;
-  height: auto;
+  width: 90vw;
+  height: 85vh;
+  border: none;
   border-radius: var(--borde-redondeado);
   background: #000;
+}
+
+.lightbox__video[controls] {
+  width: auto;
+  height: auto;
 }
 
 /* ── Botones de cierre ── */
@@ -710,6 +716,17 @@ body {
   .lightbox__img,
   .lightbox__video {
     max-width: 98vw;
+    max-height: 75vh;
+  }
+
+  .lightbox__video {
+    width: 98vw;
+    height: 75vh;
+  }
+
+  .lightbox__video[controls] {
+    width: auto;
+    height: auto;
     max-height: 75vh;
   }
 

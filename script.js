@@ -320,6 +320,13 @@ function renderizarMediaEnLightbox(indice) {
           preload.src = mediosGlobal[idx].src;
         }
       });
+    } else if (item.driveId) {
+      const iframe = document.createElement('iframe');
+      iframe.className = 'lightbox__video';
+      iframe.src = "https://drive.google.com/file/d/" + item.driveId + "/preview";
+      iframe.allow = "autoplay";
+      iframe.allowFullscreen = true;
+      contenedor.appendChild(iframe);
     } else {
       const video = document.createElement('video');
       video.className = 'lightbox__video';
@@ -329,19 +336,9 @@ function renderizarMediaEnLightbox(indice) {
       video.playsinline = true;
       video.preload = 'auto';
       if (item.thumbnailUrl) video.poster = item.thumbnailUrl;
-
       video.src = item.src;
       if (item.mimeType) video.type = item.mimeType;
-
       contenedor.appendChild(video);
-      video.addEventListener('error', function () {
-        var err = video.error;
-        if (err && item.driveId) {
-          video.src = "https://docs.google.com/uc?export=open&id=" + item.driveId;
-          video.load();
-          video.play().catch(function () {});
-        }
-      }, { once: true });
       video.play().catch(function () {});
     }
 
