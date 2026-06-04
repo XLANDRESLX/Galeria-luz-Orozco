@@ -6,6 +6,8 @@
   <title>LUZ ELENA OROZCO — Evidencias</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://lh3.googleusercontent.com">
+  <link rel="preconnect" href="https://drive.usercontent.google.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,6 +17,21 @@
     <h1 class="header__titulo">LUZ ELENA OROZCO EVIDENCIAS</h1>
     <p class="header__subtitulo">Galería multimedia</p>
   </header>
+
+  <div id="login" class="login">
+    <div class="login__card">
+      <h2 class="login__titulo">Acceso restringido</h2>
+      <p class="login__descripcion">Ingrese sus credenciales para acceder a la galería</p>
+      <div class="login__campo">
+        <input type="text" id="loginUser" class="login__input" placeholder="Usuario" autocomplete="username">
+      </div>
+      <div class="login__campo">
+        <input type="password" id="loginPass" class="login__input" placeholder="Contraseña" autocomplete="current-password">
+      </div>
+      <button id="loginBtn" class="login__btn">Ingresar</button>
+      <p id="loginError" class="login__error"></p>
+    </div>
+  </div>
 
   <main id="galeria" class="galeria"></main>
 

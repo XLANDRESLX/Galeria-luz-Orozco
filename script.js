@@ -1,98 +1,25 @@
 /* ============================================
    CONFIGURACIÓN DE LA GALERÍA
    ═══════════════════════════════════════════
-   Para añadir archivos nuevos, solo agrega
-   el nombre del archivo dentro del array de
-   su categoría correspondiente. La función
-   autoEscanearMedios() detectará si es imagen
-   o video según la extensión.
-
-   APPS_SCRIPT_URL: pega aquí la URL del web
-   app de Google Apps Script (ver Code.gs).
-   Si está vacío, usa los datos locales.
+   APPS_SCRIPT_URL: URL del web app de Google
+   Apps Script (ver Code.gs).
    ============================================ */
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMVW4H2bIjSomt7T4fsQPPVi6li4jrc862ZXxoVLXEl7JEiCweINPnRs-KJ2CNiK1mtA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGANJHfJf9NgTYWV5wH1SI-xrWOXNpWQsAmpIBqCRJUWXsmotIUXI9IgG51fk6KZEUJw/exec';
 
-async function cargarConfigDesdeDrive() {
-  if (!APPS_SCRIPT_URL) return null;
+async function cargarConfigAutenticado(user, pass) {
   try {
-    const res = await fetch(APPS_SCRIPT_URL);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.json();
+    const url = APPS_SCRIPT_URL + '?user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data && data.error) {
+      return { error: data.error };
+    }
+    return data;
   } catch (e) {
-    console.warn('Apps Script no disponible, usando datos locales.');
-    return null;
+    return { error: 'No se pudo conectar con el servidor.' };
   }
 }
-
-const MEDIOS_POR_CATEGORIA = {
-  "CENTRO DE INTERES DE MICRO FÚTBOL KID": [
-    "WhatsApp Image 2026-05-24 at 4.04.12 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 4.04.13 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.04.13 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 4.04.14 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.04.14 PM (2).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.04.14 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 4.07.36 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.07.36 PM (2).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.07.36 PM.jpeg",
-    "WhatsApp Video 2026-05-24 at 4.07.40 PM.mp4"
-  ],
-
-  "Centro de interés manos crestivas": [
-    "WhatsApp Image 2026-05-24 at 5.01.54 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.02.38 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.04.49 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.05.20 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.05.59 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.14.10 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 5.14.10 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.14.11 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.16.56 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 5.20.01 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 5.20.01 PM (2).jpeg",
-    "WhatsApp Image 2026-05-24 at 5.20.01 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 6.28.21 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 6.28.21 PM.jpeg",
-    "WhatsApp Video 2026-05-24 at 5.16.57 PM.mp4"
-  ],
-
-  "Cuerpo y expresión": [
-    "WhatsApp Image 2026-05-24 at 4.42.48 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 4.42.49 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.42.49 PM.jpeg",
-    "WhatsApp Image 2026-05-24 at 4.42.49 PM(1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.45.54 PM (1).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.45.54 PM (2).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.45.54 PM (3).jpeg",
-    "WhatsApp Image 2026-05-24 at 4.45.54 PM.jpeg",
-    "WhatsApp Video 2026-05-24 at 4.18.59 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.39.59 PM.mp4"
-  ],
-
-  "DANZA": [
-    "WhatsApp Video 2026-05-24 at 4.09.20 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.09.46 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.10.16 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.11.50 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.12.27 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.13.17 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.15.37 PM.mp4",
-    "WhatsApp Video 2026-05-24 at 4.18.10 PM.mp4"
-  ],
-
-  "Justamente": [
-    "WhatsApp Image 2026-05-24 at 6.45.44 PM.jpeg",
-    "WhatsApp Image 2026-05-25 at 9.15.18 PM.jpeg",
-    "WhatsApp Image 2026-05-25 at 9.15.19 PM (1).jpeg",
-    "WhatsApp Image 2026-05-25 at 9.15.19 PM.jpeg"
-  ],
-
-  "Leo": [
-    "WhatsApp Image 2026-05-26 at 2.20.12 PM.jpeg"
-  ]
-};
 
 /* ══════════════════════════════════════════════════════════
    AUTO ESCANEAR MEDIOS
@@ -129,18 +56,21 @@ function autoEscanearMedios(config) {
       else if (EXT_VIDEO.includes(ext)) tipo = 'video';
 
       if (tipo) {
-        let src;
+        let src, srcThumb;
         if (esDrive) {
+          const base = "https://lh3.googleusercontent.com/d/" + driveId;
           if (tipo === 'imagen') {
-            src = "https://lh3.googleusercontent.com/d/" + driveId;
+            src = base;
+            srcThumb = base + "=w500";
           } else {
             src = "https://drive.usercontent.google.com/download?id=" + driveId + "&export=open";
+            srcThumb = thumbnailUrl;
           }
         } else {
           src = "recursos/" + categoria + "/" + nombreArchivo;
         }
 
-        medios.push({ tipo, src, categoria, driveId, thumbnailUrl, mimeType });
+        medios.push({ tipo, src, srcThumb, categoria, driveId, thumbnailUrl, mimeType });
       }
     }
   }
@@ -198,17 +128,19 @@ function renderizarGaleria(medios) {
 
         const img = document.createElement('img');
         img.className = 'tarjeta__img';
-        img.src = item.src;
+        img.src = item.srcThumb || item.src;
         img.alt = item.src.substring(item.src.lastIndexOf('/') + 1);
         img.loading = 'lazy';
         img.decoding = 'async';
 
         img.addEventListener('load', function () {
-          skeleton.remove();
+          skeleton.classList.add('tarjeta__skeleton--oculto');
+          setTimeout(function () { skeleton.remove(); }, 350);
         });
 
         img.addEventListener('error', function () {
-          skeleton.remove();
+          skeleton.classList.add('tarjeta__skeleton--oculto');
+          setTimeout(function () { skeleton.remove(); }, 350);
           this.style.display = 'none';
           const errorEl = document.createElement('div');
           errorEl.className = 'tarjeta__error';
@@ -498,15 +430,104 @@ function initAnimaciones() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   INICIALIZACIÓN
+   INICIALIZACIÓN — LOGIN
    ══════════════════════════════════════════════════════════ */
 
-document.addEventListener('DOMContentLoaded', async function () {
-  const configDrive = await cargarConfigDesdeDrive();
-  const configFinal = configDrive || MEDIOS_POR_CATEGORIA;
-  mediosGlobal = autoEscanearMedios(configFinal);
+function mostrarErrorLogin(msg) {
+  var el = document.getElementById('loginError');
+  if (el) el.textContent = msg;
+}
+
+function ocultarErrorLogin() {
+  var el = document.getElementById('loginError');
+  if (el) el.textContent = '';
+}
+
+function mostrarLogin() {
+  var login = document.getElementById('login');
+  var galeria = document.getElementById('galeria');
+  if (login) login.style.display = 'flex';
+  if (galeria) galeria.style.display = 'none';
+}
+
+function ocultarLogin() {
+  var login = document.getElementById('login');
+  var galeria = document.getElementById('galeria');
+  if (login) login.style.display = 'none';
+  if (galeria) galeria.style.display = 'block';
+}
+
+function iniciarGaleria(data) {
+  mediosGlobal = autoEscanearMedios(data);
+  ocultarLogin();
   renderizarGaleria(mediosGlobal);
   initAnimaciones();
+  sessionStorage.setItem('galeria_data', JSON.stringify(data));
+}
+
+async function manejarLogin() {
+  var userInput = document.getElementById('loginUser');
+  var passInput = document.getElementById('loginPass');
+  if (!userInput || !passInput) return;
+
+  var user = userInput.value.trim();
+  var pass = passInput.value.trim();
+  if (!user || !pass) {
+    mostrarErrorLogin('Ingrese usuario y contraseña');
+    return;
+  }
+
+  ocultarErrorLogin();
+  var btn = document.getElementById('loginBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Ingresando...';
+  }
+
+  var data = await cargarConfigAutenticado(user, pass);
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+
+  if (data && data.error) {
+    mostrarErrorLogin('Usuario o contraseña incorrectos');
+    return;
+  }
+
+  if (data) {
+    iniciarGaleria(data);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  var sessionData = sessionStorage.getItem('galeria_data');
+  if (sessionData) {
+    try {
+      var parsed = JSON.parse(sessionData);
+      iniciarGaleria(parsed);
+      return;
+    } catch (e) {
+      sessionStorage.removeItem('galeria_data');
+    }
+  }
+
+  mostrarLogin();
+
+  // Login: clic en botón
+  var loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.addEventListener('click', manejarLogin);
+
+  // Login: Enter en campos
+  var loginUser = document.getElementById('loginUser');
+  var loginPass = document.getElementById('loginPass');
+  function loginKeydown(e) {
+    if (e.key === 'Enter') manejarLogin();
+  }
+  if (loginUser) loginUser.addEventListener('keydown', loginKeydown);
+  if (loginPass) loginPass.addEventListener('keydown', loginKeydown);
+  if (loginUser) loginUser.focus();
 
   // Lightbox: cerrar
   const btnCerrar = document.getElementById('btnCerrarLightbox');
