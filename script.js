@@ -240,7 +240,7 @@ function renderizarMediaEnLightbox(indice) {
       img.decoding = 'async';
 
       img.addEventListener('click', function () {
-        this.classList.toggle('lightbox__img--zoomado');
+        cerrarLightbox();
       });
 
       contenedor.appendChild(img);
@@ -509,13 +509,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     try {
       var parsed = JSON.parse(sessionData);
       iniciarGaleria(parsed);
-      return;
     } catch (e) {
       sessionStorage.removeItem('galeria_data');
+      mostrarLogin();
     }
+  } else {
+    mostrarLogin();
   }
-
-  mostrarLogin();
 
   // Login: clic en botón
   var loginBtn = document.getElementById('loginBtn');
