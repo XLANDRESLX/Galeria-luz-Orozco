@@ -62,6 +62,62 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Fondo animado con líneas de colores ── */
+.bg-lines {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-lines__line {
+  position: absolute;
+  height: 2px;
+  border-radius: 2px;
+  opacity: 0.18;
+}
+
+.bg-lines__line--1 {
+  top: 15%;
+  left: -10%;
+  width: 120%;
+  background: linear-gradient(90deg, transparent, #5DADE2, transparent);
+  animation: lineaFlotar 8s ease-in-out infinite;
+}
+
+.bg-lines__line--2 {
+  top: 40%;
+  left: -10%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, #F5A623, transparent);
+  animation: lineaFlotar 11s ease-in-out 1s infinite;
+}
+
+.bg-lines__line--3 {
+  top: 65%;
+  left: -10%;
+  width: 110%;
+  background: linear-gradient(90deg, transparent, #81C784, transparent);
+  animation: lineaFlotar 9s ease-in-out 0.5s infinite;
+}
+
+.bg-lines__line--4 {
+  top: 85%;
+  left: -10%;
+  width: 90%;
+  background: linear-gradient(90deg, transparent, #CE93D8, transparent);
+  animation: lineaFlotar 12s ease-in-out 2s infinite;
+}
+
+@keyframes lineaFlotar {
+  0%   { transform: translateX(-10%) scaleX(0.6); opacity: 0; }
+  25%  { transform: translateX(10%) scaleX(1);   opacity: 0.18; }
+  50%  { transform: translateX(30%) scaleX(0.8); opacity: 0.12; }
+  75%  { transform: translateX(60%) scaleX(1.1); opacity: 0.18; }
+  100% { transform: translateX(110%) scaleX(0.6); opacity: 0; }
+}
+
 .header {
   text-align: center;
   padding: 3rem 1.5rem 2.5rem;
@@ -246,20 +302,17 @@ body {
 
 .tarjeta--visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  transition:
-    opacity var(--duracion-fade) var(--cubic-bezier),
-    transform var(--duracion-fade) var(--cubic-bezier),
-    border-color var(--duracion-hover) ease,
-    box-shadow var(--duracion-hover) ease;
+  animation: tarjetaPop 0.6s var(--cubic-bezier) both;
 }
 
 .tarjeta:hover {
-  transform: translateY(-4px) scale(1.02);
-  border-color: var(--color-acento);
+  transform: translateY(-6px) scale(1.03) rotate(0.5deg);
+  border-color: transparent;
+  background: linear-gradient(#fff, #fff) padding-box,
+              linear-gradient(135deg, #5DADE2, #F5A623, #81C784, #CE93D8, #5DADE2) border-box;
   box-shadow:
-    0 12px 36px rgba(93, 173, 226, 0.15),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    0 16px 48px rgba(93, 173, 226, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .tarjeta:focus-visible {
@@ -301,8 +354,32 @@ body {
   pointer-events: none;
 }
 
+.tarjeta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.25) 45%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.25) 55%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.tarjeta:hover::after {
+  opacity: 1;
+  animation: shine 0.8s ease forwards;
+}
+
 .tarjeta:hover .tarjeta__img {
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 .tarjeta__img--video {
@@ -857,6 +934,18 @@ body {
 @keyframes girar {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes tarjetaPop {
+  0%   { opacity: 0; transform: translateY(30px) scale(0.9); }
+  50%  { opacity: 1; transform: translateY(-6px) scale(1.03); }
+  75%  { transform: translateY(2px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @media (max-width: 768px) {
