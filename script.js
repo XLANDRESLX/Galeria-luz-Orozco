@@ -463,6 +463,8 @@ function iniciarGaleria(data) {
   renderizarGaleria(mediosGlobal);
   initAnimaciones();
   sessionStorage.setItem('galeria_data', JSON.stringify(data));
+  var logoutBtn = document.getElementById('btnLogout');
+  if (logoutBtn) logoutBtn.style.display = 'flex';
 }
 
 async function manejarLogin() {
@@ -528,6 +530,30 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (loginUser) loginUser.addEventListener('keydown', loginKeydown);
   if (loginPass) loginPass.addEventListener('keydown', loginKeydown);
   if (loginUser) loginUser.focus();
+
+  // Logout
+  var logoutBtn = document.getElementById('btnLogout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function () {
+      sessionStorage.removeItem('galeria_data');
+      location.reload();
+    });
+  }
+
+  // Volver arriba
+  var btnArriba = document.getElementById('btnArriba');
+  if (btnArriba) {
+    btnArriba.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', function () {
+      if (window.scrollY > 400) {
+        btnArriba.classList.add('btn-arriba--visible');
+      } else {
+        btnArriba.classList.remove('btn-arriba--visible');
+      }
+    });
+  }
 
   // Lightbox: cerrar
   const btnCerrar = document.getElementById('btnCerrarLightbox');
