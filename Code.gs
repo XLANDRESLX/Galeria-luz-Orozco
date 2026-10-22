@@ -15,8 +15,8 @@
 
 const FOLDER_ID = '1V5VbwXVJqkdzhljFdRuy4f5WXDp0cf4Y';
 
-const USUARIO_POR_DEFECTO = '';
-const CONTRASENA_POR_DEFECTO = '';
+const USUARIO_POR_DEFECTO = 'invitado';
+const CONTRASENA_POR_DEFECTO = '123456';
 
 const EXT_IMAGEN = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
 const EXT_VIDEO = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
