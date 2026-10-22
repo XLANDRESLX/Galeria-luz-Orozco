@@ -5,7 +5,7 @@
    Apps Script (ver Code.gs).
    ============================================ */
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGANJHfJf9NgTYWV5wH1SI-xrWOXNpWQsAmpIBqCRJUWXsmotIUXI9IgG51fk6KZEUJw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC6yQk6AXK9PcSMfw4hcpgE9-1-blADgsieJoUOXzjWPQmioOHuP8lcHA2IA_iugnG/exec';
 
 async function cargarConfigAutenticado(user, pass) {
   try {
