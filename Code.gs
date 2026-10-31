@@ -1,38 +1,59 @@
 /* ============================================================
    GALERÍA LUZ ELENA OROZCO — BACKEND (Google Apps Script)
    ------------------------------------------------------------
-   Carpeta de Drive: una subcarpeta por categoría.
-   Endpoint: doGet(?user=...&pass=...)
+   Este archivo NO contiene datos sensibles. Todo lo privado
+   (ID de la carpeta de Drive y credenciales) se guarda en las
+   Propiedades del script, que viven solo en el proyecto de
+   Apps Script y nunca se suben al repositorio.
 
-   Credenciales: se leen de las Propiedades del script.
-   Configúralas UNA vez ejecutando desde el editor:
+   CONFIGURACIÓN (una sola vez, desde el editor de Apps Script):
 
-     configurarCredenciales('luzelena', 'TU_CONTRASENA')
+     configurarGaleria('ID_DE_LA_CARPETA', 'usuario', 'contraseña')
 
-   Si prefieres hardcodearlas, escribe los valores en
-   USUARIO_POR_DEFECTO y CONTRASENA_POR_DEFECTO.
+   Para cambiar solo la contraseña:
+
+     configurarCredenciales('usuario', 'nuevaContraseña')
+
+   Endpoint publicado (Web app):
+     doGet(?user=...&pass=...&refresh=1)
    ============================================================ */
 
-const FOLDER_ID = '1V5VbwXVJqkdzhljFdRuy4f5WXDp0cf4Y';
+<<<<<<< HEAD
+const FOLDER_ID = 'id-de-tu-carpeta';
 
 const USUARIO_POR_DEFECTO = 'invitado';
 const CONTRASENA_POR_DEFECTO = '123456';
+=======
+/* ── Nombres de las Propiedades del script ── */
+const PROP_CARPETA = 'GALERIA_FOLDER_ID';
+const PROP_USUARIO = 'GALERIA_USUARIO';
+const PROP_CONTRASENA = 'GALERIA_CONTRASENA';
+>>>>>>> 4ce477a (Actualiza archivos de configuracion y documentacion)
 
+/* ── Ajustes no sensibles ── */
 const EXT_IMAGEN = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
 const EXT_VIDEO = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
-
 const CACHE_SEGUNDOS = 300;
+
+/* ============================================================
+   ENDPOINT
+   ============================================================ */
 
 function doGet(e) {
   try {
     const params = (e && e.parameter) || {};
 
-    if (!validarCredenciales_(params.user, params.pass)) {
+    const config = leerConfig_();
+    if (!config) {
+      return json_({ error: 'Servidor no configurado. Ejecuta configurarGaleria() en Apps Script.' });
+    }
+
+    if (!validarCredenciales_(params.user, params.pass, config)) {
       return json_({ error: 'Credenciales inválidas' });
     }
 
     const cache = CacheService.getScriptCache();
-    const cacheKey = 'galeria_' + FOLDER_ID;
+    const cacheKey = 'galeria_' + config.carpetaId;
 
     if (params.refresh !== '1') {
       const cacheado = cache.get(cacheKey);
@@ -41,33 +62,150 @@ function doGet(e) {
       }
     }
 
-    const resultado = listarMedios_();
+    const resultado = listarMedios_(config.carpetaId);
 
     try {
       cache.put(cacheKey, JSON.stringify(resultado), CACHE_SEGUNDOS);
-    } catch (ignorado) {}
+    } catch (ignorado) {
+      // La caché es opcional: si falla, seguimos sirviendo datos frescos.
+    }
 
     return json_(resultado);
   } catch (err) {
-    return json_({ error: 'Error del servidor: ' + err.message });
+    // El detalle va al registro del servidor, nunca al cliente.
+    console.error('doGet: ' + (err && err.stack ? err.stack : err));
+    return json_({ error: 'Error del servidor' });
   }
 }
 
-function validarCredenciales_(usuario, contrasena) {
-  if (!usuario || !contrasena) return false;
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+
+/**
+ * Guarda la configuración privada en las Propiedades del script.
+ * Ejecutar una vez desde el editor de Apps Script.
+ *
+ * @param {string} carpetaId  ID de la carpeta de Drive con las subcarpetas-categoría.
+ * @param {string} usuario    Usuario de acceso a la galería.
+ * @param {string} contrasena Contraseña de acceso (usa una larga y única).
+ * @return {string} Mensaje de confirmación.
+ */
+function configurarGaleria(carpetaId, usuario, contrasena) {
+  if (!carpetaId || !usuario || !contrasena) {
+    throw new Error('Uso: configurarGaleria("ID_CARPETA", "usuario", "contraseña")');
+  }
+
+  if (String(contrasena).length < 10) {
+    throw new Error('La contraseña debe tener al menos 10 caracteres.');
+  }
 
   const props = PropertiesService.getScriptProperties();
-  const usuarioValido = props.getProperty('USUARIO') || USUARIO_POR_DEFECTO;
-  const contrasenaValida = props.getProperty('CONTRASENA') || CONTRASENA_POR_DEFECTO;
+  props.setProperties({
+    [PROP_CARPETA]: String(carpetaId).trim(),
+    [PROP_USUARIO]: String(usuario).trim(),
+    [PROP_CONTRASENA]: String(contrasena)
+  });
 
-  if (!usuarioValido || !contrasenaValida) return false;
-
-  return usuario === usuarioValido && contrasena === contrasenaValida;
+  return 'Galería configurada correctamente.';
 }
 
-function listarMedios_() {
+/**
+ * Cambia solo las credenciales, sin tocar la carpeta.
+ */
+function configurarCredenciales(usuario, contrasena) {
+  if (!usuario || !contrasena) {
+    throw new Error('Uso: configurarCredenciales("usuario", "contraseña")');
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    [PROP_USUARIO]: String(usuario).trim(),
+    [PROP_CONTRASENA]: String(contrasena)
+  });
+
+  return 'Credenciales actualizadas correctamente.';
+}
+
+/**
+ * Muestra qué está configurado (sin revelar la contraseña).
+ * Útil para comprobar el despliegue.
+ */
+function verConfiguracion() {
+  const props = PropertiesService.getScriptProperties();
+  const carpeta = props.getProperty(PROP_CARPETA);
+  const usuario = props.getProperty(PROP_USUARIO);
+  const contrasena = props.getProperty(PROP_CONTRASENA);
+
+  return {
+    carpetaConfigurada: Boolean(carpeta),
+    carpetaId: carpeta ? carpeta.slice(0, 6) + '…' : null,
+    usuario: usuario || null,
+    contrasenaConfigurada: Boolean(contrasena),
+    longitudContrasena: contrasena ? contrasena.length : 0
+  };
+}
+
+/**
+ * Borra la configuración guardada.
+ */
+function limpiarConfiguracion() {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty(PROP_CARPETA);
+  props.deleteProperty(PROP_USUARIO);
+  props.deleteProperty(PROP_CONTRASENA);
+  return 'Configuración eliminada.';
+}
+
+/**
+ * Lee y valida la configuración. Devuelve null si falta algo.
+ */
+function leerConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  const carpetaId = props.getProperty(PROP_CARPETA);
+  const usuario = props.getProperty(PROP_USUARIO);
+  const contrasena = props.getProperty(PROP_CONTRASENA);
+
+  if (!carpetaId || !usuario || !contrasena) return null;
+
+  return { carpetaId: carpetaId, usuario: usuario, contrasena: contrasena };
+}
+
+/* ============================================================
+   AUTENTICACIÓN
+   ============================================================ */
+
+function validarCredenciales_(usuario, contrasena, config) {
+  if (!usuario || !contrasena) return false;
+
+  // Comparación en tiempo constante: evita filtrar información
+  // por la diferencia de tiempo entre intentos.
+  const usuarioOk = igualdadSegura_(String(usuario), config.usuario);
+  const contrasenaOk = igualdadSegura_(String(contrasena), config.contrasena);
+
+  return usuarioOk && contrasenaOk;
+}
+
+function igualdadSegura_(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+
+  let diferencia = a.length ^ b.length;
+  const maximo = Math.max(a.length, b.length);
+
+  for (let i = 0; i < maximo; i++) {
+    diferencia |= a.charCodeAt(i % a.length) ^ b.charCodeAt(i % b.length);
+  }
+
+  return diferencia === 0;
+}
+
+/* ============================================================
+   LISTADO DE MEDIOS
+   ============================================================ */
+
+function listarMedios_(carpetaId) {
   const resultado = {};
-  const padre = DriveApp.getFolderById(FOLDER_ID);
+  const padre = DriveApp.getFolderById(carpetaId);
   const subcarpetas = padre.getFolders();
 
   while (subcarpetas.hasNext()) {
@@ -114,20 +252,12 @@ function esMultimedia_(nombre) {
   return EXT_IMAGEN.indexOf(ext) !== -1 || EXT_VIDEO.indexOf(ext) !== -1;
 }
 
+/* ============================================================
+   RESPUESTA
+   ============================================================ */
+
 function json_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-function configurarCredenciales(usuario, contrasena) {
-  if (!usuario || !contrasena) {
-    throw new Error('Uso: configurarCredenciales("usuario", "contraseña")');
-  }
-
-  const props = PropertiesService.getScriptProperties();
-  props.setProperty('USUARIO', usuario);
-  props.setProperty('CONTRASENA', contrasena);
-
-  return 'Credenciales configuradas correctamente.';
 }

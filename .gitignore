@@ -1,1 +1,30 @@
-# Code.gs ahora se versiona para no perderlo.
+# ── Secretos: NUNCA se versionan ──
+# La configuración real (ID de carpeta de Drive y credenciales) vive en
+# las Propiedades del script de Apps Script, no en el repositorio.
+.env
+.env.*
+*.secret
+*.key
+credenciales.*
+config.local.*
+
+# Google Apps Script / clasp
+.clasp.json
+.clasprc.json
+
+# Sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias y temporales (por si se añade tooling)
+node_modules/
+dist/
+build/
+*.log

@@ -10,22 +10,32 @@ This is a multimedia gallery web app for the "Luz Elena Orozco" exhibition. It h
 - `index.html` — Page skeleton; loads `script.js` and `style.css`.
 - `README.md` — Short project description.
 
+## Secrets policy — read this before committing
+
+`Code.gs` is versioned, so it must **never** contain real secrets. The Drive folder ID and the credentials live in **Script Properties** (`PropertiesService`), which exist only inside the Apps Script project.
+
+- Property keys: `GALERIA_FOLDER_ID`, `GALERIA_USUARIO`, `GALERIA_CONTRASENA`.
+- Setup once from the Apps Script editor: `configurarGaleria('ID_CARPETA', 'usuario', 'contraseña')`.
+- Rotate only the password: `configurarCredenciales('usuario', 'nuevaContraseña')`.
+- Inspect what is set (never prints the password): `verConfiguracion()`.
+- There are **no default credentials**. If properties are missing, `doGet` returns `Servidor no configurado` instead of falling back to a hardcoded user.
+- Never commit the folder ID, passwords, tokens or the `.clasp.json` file. `README.md` and `AGENTS.md` must not contain real values either.
+
 ## Authentication
 
-- **Default credentials**: user=`invitado`, pass=`123456`. These are hardcoded in `Code.gs` as `USUARIO_POR_DEFECTO` and `CONTRASENA_POR_DEFECTO`.
-- **To set custom credentials**: open `Code.gs` in the Google Apps Script editor and run `configurarCredenciales('luzelena', 'TU_CONTRASENA')`. This stores the values in script properties so `validarCredenciales_` will use them instead of the defaults.
 - Credentials are checked via the `user` and `pass` query params on the web app URL (`?user=...&pass=`).
-- If props are empty, validation falls back to the hardcoded defaults — so **always run `configurarCredenciales`** after deploying.
+- `validarCredenciales_` compares both values with `igualdadSegura_` (constant-time), so timing cannot leak length or content.
+- Errors returned to the client are generic (`Credenciales inválidas`, `Error del servidor`); details go to `console.error` in the Apps Script log.
 
 ## Key entry points
 
-- **Backend**: `Code.gs` → `doGet(e)` is the landing function. It validates credentials, checks a 300s cache (key: `galeria_<FOLDER_ID>`), and returns media grouped by Drive subfolder category.
+- **Backend**: `Code.gs` → `doGet(e)` is the landing function. It reads the config from Script Properties, validates credentials, checks a 300s cache (key: `galeria_<folderId>`), and returns media grouped by Drive subfolder category.
 - **Frontend**: `index.html` → `DOMContentLoaded` calls `mostrarLogin()` then, after login, `iniciarGaleria(data)` which sets `mediosGlobal` and renders the gallery.
-- **Apps Script URL** is hardcoded in `script.js:8`. If you redeploy the web app, update this URL.
+- **Apps Script URL** is hardcoded in `script.js:8`. This URL is public by design (the browser calls it); it is not a secret. If you redeploy the web app, update this URL.
 
 ## Media & Drive organization
 
-- The backend scans a **single Drive folder** (ID: `1V5VbwXVJqkdzhljFdRuy4f5WXDp0cf4Y`). Subfolders within it are treated as categories.
+- The backend scans a **single Drive folder** configured at deploy time via `configurarGaleria(...)`; the ID is never written in the repo. Subfolders within it are treated as categories.
 - Only files matching supported extensions are included:
   - **Images**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`, `.svg`
   - **Videos**: `.mp4`, `.webm`, `.mov`, `.avi`, `.mkv`
@@ -61,8 +71,9 @@ Typography: `Inter` for UI text and `Playfair Display` (`--font-display`) for th
 
 ## Common gotchas
 
-- If the web app returns `error`, the frontend shows "Usuario o contraseña incorrectos" — verify you ran `configurarCredenciales` in the GAS editor.
+- If the web app returns `error`, the frontend shows "Usuario o contraseña incorrectos" — verify you ran `configurarGaleria(...)` / `configurarCredenciales(...)` in the GAS editor and that the deployment was updated.
 - The gallery is hidden (`display: none`) until login succeeds.
 - `sessionStorage` preserves gallery data across page reloads; clearing it forces re-login.
-- The Drive folder ID is hardcoded in `Code.gs:16`. Change it if the media structure changes.
+- The Drive folder ID is **not** in the code: change it with `configurarGaleria('NUEVO_ID', ...)` if the media structure changes.
+- After editing `Code.gs` you must **deploy a new version** (Publish ▸ Manage deployments ▸ Edit ▸ Version: New). Running the editor alone does not update the public URL.
 - No local build/lint/test steps exist — this is a pure GAS + static files project. Edits to `Code.gs` must be deployed; edits to `script.js`/`style.css` take effect immediately in the hosted HTML.
