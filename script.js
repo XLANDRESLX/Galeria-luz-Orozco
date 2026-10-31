@@ -105,6 +105,8 @@ function renderizarGaleria(medios) {
   for (const [categoria, items] of Object.entries(grupos)) {
     const seccion = document.createElement('section');
     seccion.className = 'seccion';
+    seccion.id = 'seccion-' + slugCategoria(categoria);
+    seccion.dataset.categoria = categoria;
 
     const titulo = document.createElement('h2');
     titulo.className = 'seccion__titulo';
@@ -120,6 +122,7 @@ function renderizarGaleria(medios) {
       tarjeta.setAttribute('role', 'button');
       tarjeta.setAttribute('tabindex', '0');
       tarjeta.dataset.index = i;
+      tarjeta.dataset.categoria = categoria;
 
       if (item.tipo === 'imagen') {
         // Skeleton shimmer mientras carga
@@ -158,7 +161,7 @@ function renderizarGaleria(medios) {
           poster.style.backgroundSize = 'cover';
           poster.style.backgroundPosition = 'center';
         }
-        poster.style.backgroundColor = '#1a1a2e';
+        poster.style.backgroundColor = '#E8F0DC';
 
         const overlay = document.createElement('div');
         overlay.className = 'tarjeta__video-overlay';
@@ -176,6 +179,12 @@ function renderizarGaleria(medios) {
       nombre.className = 'tarjeta__nombre';
       nombre.textContent = item.src.substring(item.src.lastIndexOf('/') + 1);
       tarjeta.appendChild(nombre);
+
+      // Luz que sigue al cursor dentro de la tarjeta (ver style.css)
+      const spot = document.createElement('span');
+      spot.className = 'tarjeta__spot';
+      spot.setAttribute('aria-hidden', 'true');
+      tarjeta.appendChild(spot);
 
       tarjeta.addEventListener('click', function () {
         const idx = medios.indexOf(item);
@@ -196,6 +205,44 @@ function renderizarGaleria(medios) {
     seccion.appendChild(grid);
     contenedor.appendChild(seccion);
   }
+
+  construirNavFlotante(Object.keys(grupos));
+}
+
+/* Convierte el nombre de una categoría en un id válido */
+function slugCategoria(nombre) {
+  return String(nombre)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'categoria';
+}
+
+/* Construye los botones de la barra flotante a partir de las categorías reales */
+function construirNavFlotante(categorias) {
+  const nav = document.querySelector('.float-nav');
+  if (!nav) return;
+
+  nav.innerHTML = '';
+
+  const btnInicio = document.createElement('button');
+  btnInicio.className = 'float-nav__btn';
+  btnInicio.type = 'button';
+  btnInicio.dataset.target = 'top';
+  btnInicio.textContent = '\u2605 Inicio';
+  nav.appendChild(btnInicio);
+
+  categorias.forEach(function (categoria) {
+    const btn = document.createElement('button');
+    btn.className = 'float-nav__btn';
+    btn.type = 'button';
+    btn.dataset.target = 'seccion-' + slugCategoria(categoria);
+    btn.textContent = categoria;
+    nav.appendChild(btn);
+  });
+
+  conectarNavFlotante();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -404,28 +451,26 @@ function detenerSlideshow() {
    ══════════════════════════════════════════════════════════ */
 
 function initAnimaciones() {
-  requestAnimationFrame(function () {
-    const tarjetas = document.querySelectorAll('.tarjeta');
+  const tarjetas = document.querySelectorAll('.tarjeta');
+  if (!tarjetas.length) return;
 
-    const observer = new IntersectionObserver(function (entries) {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          const index = Array.from(tarjetas).indexOf(entry.target);
-          const retraso = index * 80;
-          setTimeout(function () {
-            entry.target.classList.add('tarjeta--visible');
-          }, retraso);
-          observer.unobserve(entry.target);
-        }
-      }
-    }, {
-      threshold: 0.1,
-      rootMargin: '0px 0px -40px 0px'
+  const observer = new IntersectionObserver(function (entries) {
+    // Se animan solo las que entran en este lote, con un escalonado corto
+    const visibles = entries.filter(function (e) { return e.isIntersecting; });
+
+    visibles.forEach(function (entry, i) {
+      entry.target.style.setProperty('--retardo', (i % 8) * 35 + 'ms');
+      entry.target.classList.add('tarjeta--visible');
+      observer.unobserve(entry.target);
     });
+  }, {
+    threshold: 0,
+    rootMargin: '150px 0px 0px 0px'
+  });
 
-    for (const tarjeta of tarjetas) {
-      observer.observe(tarjeta);
-    }
+  // Observar todas de inmediato: el observer no bloquea el scroll
+  tarjetas.forEach(function (tarjeta) {
+    observer.observe(tarjeta);
   });
 }
 
@@ -650,3 +695,321 @@ document.addEventListener('DOMContentLoaded', async function () {
     }, { passive: true });
   }
 });
+
+/* ── Barra de navegación flotante ── */
+
+function conectarNavFlotante() {
+  const botones = document.querySelectorAll('.float-nav__btn');
+
+  botones.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const esInicio = btn.dataset.target === 'top';
+      const destino = esInicio ? null : document.getElementById(btn.dataset.target);
+      if (!esInicio && !destino) return;
+
+      botones.forEach(function (b) { b.classList.remove('activo'); });
+      btn.classList.add('activo');
+      ultimaCategoriaActiva = btn.dataset.target;
+      // Al elegir una categoría se vuelve al centrado automático
+      navScrollManualHasta = 0;
+      centrarBotonActivo(btn);
+
+      if (esInicio) {
+        // "Inicio" lleva arriba del todo: el encabezado Isaac J. Pereira
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  activarScrollNav();
+  actualizarAltoNav();
+  actualizarEstadoFlotante();
+}
+
+/* Permite desplazar la barra a mano: rueda del mouse, arrastre y swipe.
+   Mientras el usuario la mueve, el auto-centrado se pausa unos segundos. */
+let navScrollManualHasta = 0;
+
+function activarScrollNav() {
+  const nav = document.querySelector('.float-nav');
+  if (!nav || nav.dataset.scrollListo === '1') return;
+  nav.dataset.scrollListo = '1';
+
+  function marcarManual() {
+    navScrollManualHasta = Date.now() + 3000;
+  }
+
+  // Rueda del mouse: la vertical se convierte en desplazamiento horizontal
+  nav.addEventListener('wheel', function (e) {
+    if (nav.scrollWidth <= nav.clientWidth + 2) return;
+
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (!delta) return;
+
+    const antes = nav.scrollLeft;
+    nav.scrollLeft = antes + delta;
+
+    if (nav.scrollLeft !== antes) {
+      e.preventDefault();
+      marcarManual();
+    }
+  }, { passive: false });
+
+  // Arrastre con el mouse (el táctil ya se desplaza de forma nativa)
+  let arrastrando = false;
+  let arrastreMovido = false;
+  let xInicial = 0;
+  let scrollInicial = 0;
+
+  nav.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' || e.button !== 0) return;
+    arrastrando = true;
+    arrastreMovido = false;
+    xInicial = e.clientX;
+    scrollInicial = nav.scrollLeft;
+  });
+
+  nav.addEventListener('pointermove', function (e) {
+    if (!arrastrando) return;
+
+    const dx = e.clientX - xInicial;
+    if (Math.abs(dx) > 5) arrastreMovido = true;
+    if (!arrastreMovido) return;
+
+    nav.scrollLeft = scrollInicial - dx;
+    nav.classList.add('float-nav--arrastrando');
+    marcarManual();
+  });
+
+  function terminarArrastre() {
+    if (!arrastrando) return;
+    arrastrando = false;
+    nav.classList.remove('float-nav--arrastrando');
+  }
+
+  nav.addEventListener('pointerup', terminarArrastre);
+  nav.addEventListener('pointerleave', terminarArrastre);
+  window.addEventListener('pointerup', terminarArrastre);
+
+  // Si fue un arrastre, no se dispara el clic del botón
+  nav.addEventListener('click', function (e) {
+    if (arrastreMovido) {
+      e.preventDefault();
+      e.stopPropagation();
+      arrastreMovido = false;
+    }
+  }, true);
+
+  // Swipe táctil: también pausa el auto-centrado
+  nav.addEventListener('touchstart', marcarManual, { passive: true });
+  nav.addEventListener('touchmove', marcarManual, { passive: true });
+}
+
+/* Publica la altura real de la barra para que otros elementos
+   (botón "volver arriba") se coloquen por encima de ella */
+function actualizarAltoNav() {
+  const nav = document.querySelector('.float-nav');
+  if (!nav) return;
+
+  const alto = getComputedStyle(nav).display === 'none' ? 0 : nav.offsetHeight;
+  document.documentElement.style.setProperty('--alto-nav', alto + 'px');
+}
+
+/* Desliza la barra flotante para que el botón activo quede visible */
+function centrarBotonActivo(btn) {
+  const nav = btn.closest('.float-nav');
+  if (!nav) return;
+
+  // Si todos los botones caben, no hay nada que deslizar
+  if (nav.scrollWidth <= nav.clientWidth + 2) return;
+
+  const navRect = nav.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+
+  const destino = nav.scrollLeft
+    + (btnRect.left - navRect.left)
+    - (navRect.width - btnRect.width) / 2;
+
+  const maximo = nav.scrollWidth - nav.clientWidth;
+
+  nav.scrollTo({
+    left: Math.max(0, Math.min(destino, maximo)),
+    behavior: 'smooth'
+  });
+}
+
+let ultimaCategoriaActiva = null;
+
+/* Resalta el botón de la sección que se está viendo */
+function actualizarEstadoFlotante() {
+  const botones = document.querySelectorAll('.float-nav__btn');
+  if (!botones.length) return;
+
+  const secciones = document.querySelectorAll('.seccion');
+  const limite = 140; // px desde arriba donde se considera "sección activa"
+  let activo = 'top';
+
+  secciones.forEach(function (seccion) {
+    if (seccion.getBoundingClientRect().top <= limite) {
+      activo = seccion.id;
+    }
+  });
+
+  let botonActivo = null;
+
+  botones.forEach(function (btn) {
+    const esActivo = btn.dataset.target === activo;
+    btn.classList.toggle('activo', esActivo);
+    if (esActivo) botonActivo = btn;
+  });
+
+  // Solo desplazamos la barra cuando cambia la categoría y el usuario no
+  // la está moviendo a mano.
+  if (botonActivo && activo !== ultimaCategoriaActiva) {
+    ultimaCategoriaActiva = activo;
+    if (Date.now() > navScrollManualHasta) {
+      centrarBotonActivo(botonActivo);
+    }
+  }
+}
+
+window.addEventListener('scroll', actualizarEstadoFlotante, { passive: true });
+window.addEventListener('resize', actualizarAltoNav);
+
+document.addEventListener('DOMContentLoaded', function () {
+  conectarNavFlotante();
+  crearDestellosFondo();
+  activarLuzPuntero();
+  activarEfectoTarjetas();
+  actualizarProgresoScroll();
+
+  window.addEventListener('scroll', actualizarProgresoScroll, { passive: true });
+  window.addEventListener('resize', actualizarProgresoScroll);
+});
+
+// La barra puede cambiar de alto al cargar las fuentes
+window.addEventListener('load', actualizarAltoNav);
+
+/* ══════════════════════════════════════════════════════════
+   EFECTOS DINÁMICOS
+   ══════════════════════════════════════════════════════════ */
+
+/* Crea los destellos que titilan en el fondo.
+   Verde y azul son estructura (30%); el ámbar aparece poco (regla 10%). */
+function crearDestellosFondo() {
+  const cont = document.getElementById('bgDestellos');
+  if (!cont || cont.childElementCount) return;
+
+  const TOTAL = 36;
+  const tonos = [
+    'rgba(124, 179, 66, 0.95)',
+    'rgba(124, 179, 66, 0.95)',
+    'rgba(93, 173, 226, 0.95)',
+    'rgba(93, 173, 226, 0.95)',
+    'rgba(174, 213, 129, 1)',
+    'rgba(174, 213, 129, 1)',
+    'rgba(124, 179, 66, 0.95)',
+    'rgba(93, 173, 226, 0.95)',
+    'rgba(255, 179, 0, 0.95)'
+  ];
+
+  for (let i = 0; i < TOTAL; i++) {
+    const destello = document.createElement('span');
+    destello.className = 'destello';
+    destello.style.setProperty('--x', (Math.random() * 100).toFixed(2) + '%');
+    destello.style.setProperty('--y', (Math.random() * 100).toFixed(2) + '%');
+    destello.style.setProperty('--s', (2 + Math.random() * 4).toFixed(2) + 'px');
+    destello.style.setProperty('--dur', (3.5 + Math.random() * 5).toFixed(2) + 's');
+    destello.style.setProperty('--delay', (Math.random() * 6).toFixed(2) + 's');
+    destello.style.setProperty('--tono', tonos[i % tonos.length]);
+    cont.appendChild(destello);
+  }
+}
+
+/* Halo de luz que sigue al puntero (solo con ratón/trackpad) */
+function activarLuzPuntero() {
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  let pendiente = false;
+  let x = 0;
+  let y = 0;
+
+  function aplicar() {
+    pendiente = false;
+    const raiz = document.documentElement.style;
+    raiz.setProperty('--mx', x + 'px');
+    raiz.setProperty('--my', y + 'px');
+  }
+
+  window.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    document.body.classList.add('con-puntero');
+    x = e.clientX;
+    y = e.clientY;
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(aplicar);
+  }, { passive: true });
+}
+
+/* Inclinación 3D + luz local en cada tarjeta */
+function activarEfectoTarjetas() {
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  let tarjetaActiva = null;
+  let ultimoEvento = null;
+  let pendiente = false;
+
+  function limpiar(tarjeta) {
+    tarjeta.style.removeProperty('--tiltX');
+    tarjeta.style.removeProperty('--tiltY');
+    tarjeta.style.removeProperty('--cx');
+    tarjeta.style.removeProperty('--cy');
+  }
+
+  function aplicar() {
+    pendiente = false;
+    const e = ultimoEvento;
+    if (!e) return;
+
+    const tarjeta = e.target.closest ? e.target.closest('.tarjeta') : null;
+
+    if (tarjeta !== tarjetaActiva) {
+      if (tarjetaActiva) limpiar(tarjetaActiva);
+      tarjetaActiva = tarjeta;
+    }
+
+    if (!tarjeta) return;
+
+    const r = tarjeta.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+
+    tarjeta.style.setProperty('--cx', (px * 100).toFixed(1) + '%');
+    tarjeta.style.setProperty('--cy', (py * 100).toFixed(1) + '%');
+    tarjeta.style.setProperty('--tiltX', ((0.5 - py) * 9).toFixed(2) + 'deg');
+    tarjeta.style.setProperty('--tiltY', ((px - 0.5) * 9).toFixed(2) + 'deg');
+  }
+
+  document.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    ultimoEvento = e;
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(aplicar);
+  }, { passive: true });
+}
+
+/* Barra de progreso de lectura en la parte superior */
+function actualizarProgresoScroll() {
+  const barra = document.getElementById('scrollProgresoBarra');
+  if (!barra) return;
+
+  const recorrido = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = recorrido > 0 ? (window.scrollY / recorrido) * 100 : 0;
+  barra.style.width = Math.min(100, Math.max(0, pct)).toFixed(2) + '%';
+}
